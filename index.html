@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HortoM8 · Intelligent grounds management</title>
+<meta name="description" content="HortoM8 reads weather, soil, and operational signals continuously, then adjusts mowing, irrigation, and maintenance workflows automatically. For councils, schools, universities, and large-facility operators.">
+<link rel="icon" type="image/svg+xml" href="assets/logos/m8-favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     DESIGN TOKENS · synced with style guide v1.1
+     ============================================================ */
+  :root {
+    --bg:           #0b0f0d;
+    --bg-2:         #111714;
+    --bg-3:         #161e1a;
+    --bg-4:         #1c2620;
+    --logo-dark:    #23201c;
+
+    --ink:          #e8efe9;
+    --ink-dim:      rgba(232,239,233,0.62);
+    --ink-faint:    rgba(232,239,233,0.32);
+    --ink-ghost:    rgba(232,239,233,0.16);
+
+    --line:         rgba(232,239,233,0.08);
+    --line-2:       rgba(232,239,233,0.16);
+    --line-3:       rgba(232,239,233,0.24);
+
+    --accent:       #b9ff4a;
+    --accent-dim:   rgba(185,255,74,0.12);
+    --accent-2:     #5cd3a8;
+    --accent-2-dim: rgba(92,211,168,0.12);
+    --warn:         #ffb84a;
+    --warn-dim:     rgba(255,184,74,0.12);
+    --danger:       #ff5a5a;
+    --danger-dim:   rgba(255,90,90,0.12);
+
+    --font-sans:    'Geist', system-ui, -apple-system, sans-serif;
+    --font-mono:    'Geist Mono', ui-monospace, monospace;
+    --font-serif:   'Instrument Serif', Georgia, serif;
+
+    --r-sm:  4px;
+    --r-md:  6px;
+    --r-lg:  8px;
+    --r-xl:  10px;
+    --r-2xl: 14px;
+    --r-3xl: 16px;
+
+    --shadow-panel: 0 30px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+    --glow-accent:  0 0 12px var(--accent);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+  img { max-width: 100%; display: block; }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+
+  .mono { font-family: var(--font-mono); }
+  .container { max-width: 1320px; margin: 0 auto; padding: 0 32px; }
+
+  /* ============================================================
+     NAV
+     ============================================================ */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(11,15,13,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+  .nav-logo img {
+    height: 26px;
+    width: auto;
+  }
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.02em;
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 14px;
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-md);
+    color: var(--ink);
+    letter-spacing: 0.02em;
+    transition: all 0.15s ease;
+  }
+  .nav-cta:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  /* ============================================================
+     HERO
+     ============================================================ */
+  .hero {
+    padding: 80px 0 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 70% 20%, rgba(185,255,74,0.08), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 20% 80%, rgba(92,211,168,0.06), transparent 60%);
+    pointer-events: none;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 60px;
+    align-items: end;
+    position: relative;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 32px;
+  }
+  .eyebrow .dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: var(--glow-accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  h1 {
+    font-family: var(--font-sans);
+    font-size: clamp(48px, 6.5vw, 92px);
+    line-height: 0.96;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+    margin-bottom: 28px;
+  }
+  h1 em, h2 em {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .hero-lead {
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink-dim);
+    max-width: 540px;
+    margin-bottom: 36px;
+  }
+  .cta-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    padding: 14px 22px;
+    border-radius: var(--r-lg);
+    font-weight: 500;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.15s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); }
+  .btn-ghost {
+    padding: 14px 18px;
+    border-radius: var(--r-lg);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--ink-dim);
+  }
+  .btn-ghost:hover { color: var(--ink); }
+
+  /* Hero dashboard panel */
+  .panel {
+    background: linear-gradient(180deg, var(--bg-2), var(--bg-3));
+    border: 1px solid var(--line);
+    border-radius: var(--r-2xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-panel);
+  }
+  .panel-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+  .panel-bar .lights { display: flex; gap: 6px; }
+  .panel-bar .lights span {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--ink-ghost);
+  }
+  .panel-body { padding: 20px; }
+  .panel-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .metric {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--line);
+    border-radius: var(--r-xl);
+    padding: 14px;
+  }
+  .metric-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .metric-value {
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .metric-value .unit { font-size: 14px; color: var(--ink-dim); font-weight: 400; }
+  .metric .trend {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    margin-top: 6px;
+  }
+  .metric .trend.warn { color: var(--warn); }
+  .sparkline {
+    height: 48px;
+    margin-top: 8px;
+  }
+  .alert-list {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--line);
+    border-radius: var(--r-xl);
+    padding: 14px;
+  }
+  .alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .alert:last-child { border-bottom: none; }
+  .alert .ico {
+    width: 24px; height: 24px;
+    border-radius: var(--r-md);
+    background: var(--accent-dim);
+    color: var(--accent);
+    display: grid; place-items: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .alert.warn .ico { background: var(--warn-dim); color: var(--warn); }
+  .alert .meta { color: var(--ink-faint); font-family: var(--font-mono); font-size: 10px; }
+
+  /* ============================================================
+     STAT BAND
+     ============================================================ */
+  .stat-band {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    margin-top: 80px;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+  }
+  .stat {
+    background: var(--bg);
+    padding: 32px;
+  }
+  .stat-num {
+    font-family: var(--font-serif);
+    font-size: 56px;
+    line-height: 1;
+    color: var(--accent);
+    font-weight: 400;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+  }
+
+  /* ============================================================
+     SECTION
+     ============================================================ */
+  .section { padding: 100px 0; }
+  .section-head { margin-bottom: 60px; max-width: 720px; }
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::before {
+    content: ""; width: 28px; height: 1px; background: var(--accent);
+  }
+  h2 {
+    font-family: var(--font-sans);
+    font-size: clamp(36px, 4.5vw, 56px);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  .section-lead {
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--ink-dim);
+  }
+
+  /* Capability grid */
+  .caps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--r-2xl);
+    overflow: hidden;
+  }
+  .cap {
+    background: var(--bg);
+    padding: 36px 32px;
+    transition: background 0.2s ease;
+  }
+  .cap:hover { background: var(--bg-2); }
+  .cap-num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    margin-bottom: 32px;
+  }
+  .cap-icon {
+    width: 40px; height: 40px;
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-lg);
+    display: grid; place-items: center;
+    margin-bottom: 24px;
+    color: var(--accent);
+  }
+  .cap-title {
+    font-size: 19px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    margin-bottom: 10px;
+  }
+  .cap-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-dim);
+  }
+
+  /* Workflow log */
+  .workflow {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-2xl);
+    padding: 40px;
+  }
+  .workflow-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .workflow-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 100px;
+    gap: 32px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: center;
+  }
+  .workflow-row:last-child { border-bottom: none; }
+  .workflow-event {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .workflow-event strong {
+    display: block;
+    color: var(--ink);
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  .workflow-action {
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .workflow-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent);
+    border: 1px solid rgba(185,255,74,0.3);
+    background: var(--accent-dim);
+    padding: 4px 8px;
+    border-radius: var(--r-sm);
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  /* Two-col + insight list */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+  .insight-list { list-style: none; }
+  .insight-list li {
+    padding: 24px 0;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 16px;
+  }
+  .insight-list li:first-child { border-top: 1px solid var(--line); }
+  .insight-list .num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    padding-top: 2px;
+  }
+  .insight-list .body strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .insight-list .body p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-dim);
+  }
+
+  /* CTA block */
+  .cta {
+    background: linear-gradient(135deg, var(--bg-2), var(--bg-3));
+    border: 1px solid var(--line);
+    border-radius: var(--r-3xl);
+    padding: 64px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(185,255,74,0.06), transparent 60%);
+  }
+  .cta > * { position: relative; }
+  .cta h2 { margin-bottom: 16px; }
+  .cta p { color: var(--ink-dim); margin-bottom: 28px; max-width: 640px; margin-left: auto; margin-right: auto; }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 40px 0;
+    margin-top: 100px;
+  }
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+
+  /* Responsive */
+  @media (max-width: 960px) {
+    .hero-grid, .two-col { grid-template-columns: 1fr; gap: 40px; }
+    .caps { grid-template-columns: 1fr; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .workflow-row { grid-template-columns: 1fr; gap: 8px; }
+    .nav-links { display: none; }
+    .cta { padding: 40px 24px; }
+    .workflow { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============================================================
+       NAV
+       ============================================================ -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <img src="assets/logos/hm8-on-dark.svg" alt="HortoM8">
+      </a>
+      <div class="nav-links">
+        <a href="#platform">platform</a>
+        <a href="#capabilities">capabilities</a>
+        <a href="#scenario">scenario</a>
+        <a href="#intelligence">intelligence</a>
+        <a href="#contact">contact</a>
+      </div>
+      <a href="#contact" class="nav-cta">book a walkthrough</a>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">
+            <span class="dot"></span>
+            <span>SYS.STATUS · v1.1 shipped · syd</span>
+          </div>
+          <h1>Grounds management, operating <em>like a system.</em></h1>
+          <p class="hero-lead">HortoM8 reads weather, soil, and operational signals continuously, then adjusts mowing, irrigation, and maintenance workflows automatically. For councils, schools, universities, and large-facility operators that have outgrown observation-based maintenance.</p>
+          <div class="cta-row">
+            <a href="#contact" class="btn-primary">
+              Book a walkthrough
+              <span class="mono">→</span>
+            </a>
+            <a href="#scenario" class="btn-ghost">// see how it responds</a>
+          </div>
+        </div>
+
+        <!-- Hero dashboard panel -->
+        <div class="panel">
+          <div class="panel-bar">
+            <div class="lights">
+              <span style="background: var(--accent);"></span>
+              <span style="background: var(--warn);"></span>
+              <span></span>
+            </div>
+            <span>app.hortom8.com.au · ops</span>
+            <span class="mono">live</span>
+          </div>
+          <div class="panel-body">
+            <div class="panel-title">// site dashboard · oval 2</div>
+            <div class="metric-grid">
+              <div class="metric">
+                <div class="metric-label">soil moisture</div>
+                <div class="metric-value">62<span class="unit">% vwc</span></div>
+                <svg class="sparkline" viewBox="0 0 200 48" preserveAspectRatio="none">
+                  <polyline points="0,32 20,28 40,24 60,30 80,20 100,18 120,22 140,16 160,12 180,18 200,14" fill="none" stroke="#b9ff4a" stroke-width="1.5"/>
+                </svg>
+                <div class="trend">↑ 4% from yesterday · target met</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">next mow</div>
+                <div class="metric-value">+38<span class="unit">hrs</span></div>
+                <svg class="sparkline" viewBox="0 0 200 48" preserveAspectRatio="none">
+                  <polyline points="0,38 30,38 30,18 70,18 70,30 110,30 110,12 150,12 150,24 200,24" fill="none" stroke="#5cd3a8" stroke-width="1.5"/>
+                </svg>
+                <div class="trend warn">⚠ deferred · rainfall 18mm</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">turf health</div>
+                <div class="metric-value">94<span class="unit">/100</span></div>
+                <svg class="sparkline" viewBox="0 0 200 48" preserveAspectRatio="none">
+                  <polyline points="0,28 20,26 40,22 60,20 80,18 100,16 120,14 140,12 160,10 180,8 200,6" fill="none" stroke="#b9ff4a" stroke-width="1.5"/>
+                </svg>
+                <div class="trend">↑ recovering from heatwave</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">consumables</div>
+                <div class="metric-value">3<span class="unit">items low</span></div>
+                <svg class="sparkline" viewBox="0 0 200 48" preserveAspectRatio="none">
+                  <rect x="0" y="20" width="18" height="28" fill="#5cd3a8" opacity="0.7"/>
+                  <rect x="22" y="14" width="18" height="34" fill="#5cd3a8" opacity="0.7"/>
+                  <rect x="44" y="24" width="18" height="24" fill="#5cd3a8" opacity="0.7"/>
+                  <rect x="66" y="10" width="18" height="38" fill="#b9ff4a"/>
+                  <rect x="88" y="18" width="18" height="30" fill="#5cd3a8" opacity="0.7"/>
+                  <rect x="110" y="6" width="18" height="42" fill="#b9ff4a"/>
+                  <rect x="132" y="22" width="18" height="26" fill="#5cd3a8" opacity="0.7"/>
+                  <rect x="154" y="16" width="18" height="32" fill="#5cd3a8" opacity="0.7"/>
+                  <rect x="176" y="12" width="18" height="36" fill="#b9ff4a"/>
+                </svg>
+                <div class="trend">→ reorder via foliar</div>
+              </div>
+            </div>
+            <div class="alert-list">
+              <div class="alert">
+                <div class="ico">!</div>
+                <div style="flex:1;">
+                  <div style="font-size:13px;">Frost risk overnight · zone 3 turf</div>
+                  <div class="meta">protection cycle scheduled · 04:15</div>
+                </div>
+              </div>
+              <div class="alert warn">
+                <div class="ico">⚡</div>
+                <div style="flex:1;">
+                  <div style="font-size:13px;">Mower 02 · battery cycle anomaly</div>
+                  <div class="meta">service ticket created · #1284</div>
+                </div>
+              </div>
+              <div class="alert">
+                <div class="ico">↻</div>
+                <div style="flex:1;">
+                  <div style="font-size:13px;">Pre-emergent window opening · 9 days</div>
+                  <div class="meta">approval required · ops manager</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       STAT BAND
+       ============================================================ -->
+  <section class="stat-band">
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-num">24/7</div>
+        <div class="stat-label">// continuous environmental and asset telemetry</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">0</div>
+        <div class="stat-label">// vendor lock-in. brand-agnostic by design</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">1×</div>
+        <div class="stat-label">// platform. grounds, procurement, reporting</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">∞</div>
+        <div class="stat-label">// sites, zones, assets, and event calendars</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CAPABILITIES
+       ============================================================ -->
+  <section class="section" id="capabilities">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-label">[01] capabilities</div>
+        <h2>Workflows that respond to <em>the conditions actually on the ground.</em></h2>
+        <p class="section-lead">HortoM8 doesn't just schedule. It senses, defers, recovers, and rebalances. Five core behaviours run continuously, with the operations team in oversight, not in the loop.</p>
+      </div>
+
+      <div class="caps">
+        <div class="cap">
+          <div class="cap-num">01 / 05</div>
+          <div class="cap-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13a4 4 0 0 1-8 0c0-3 4-9 4-9s4 6 4 9z"/></svg>
+          </div>
+          <div class="cap-title">Wet-weather recovery</div>
+          <p class="cap-text">Defers mowing until turf and soil moisture return to safe levels, then initiates a catch-up protocol with adjusted intensity, height-of-cut, and night-time windows.</p>
+        </div>
+        <div class="cap">
+          <div class="cap-num">02 / 05</div>
+          <div class="cap-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+          </div>
+          <div class="cap-title">Heatwave management</div>
+          <p class="cap-text">Detects extreme-heat forecasts, schedules supplemental irrigation within safe windows, delays mowing during peak temperatures, and restores normal cycles when conditions stabilise.</p>
+        </div>
+        <div class="cap">
+          <div class="cap-num">03 / 05</div>
+          <div class="cap-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="cap-title">Event-aware operations</div>
+          <p class="cap-text">Avoids scheduled games, training, school recess, and noise-restricted hours by building these constraints into workflow logic rather than depending on manual calendar oversight.</p>
+        </div>
+        <div class="cap">
+          <div class="cap-num">04 / 05</div>
+          <div class="cap-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          </div>
+          <div class="cap-title">Multi-asset load balancing</div>
+          <p class="cap-text">Reassigns mowers and irrigation zones dynamically when an asset is unavailable or a zone needs additional attention, across campuses and multi-field complexes.</p>
+        </div>
+        <div class="cap">
+          <div class="cap-num">05 / 05</div>
+          <div class="cap-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M12 3v9l6 3"/></svg>
+          </div>
+          <div class="cap-title">Surface conditioning</div>
+          <p class="cap-text">Synthetic turf and high-use areas. Schedules grooming, debris removal, and sanitation by usage intensity. Defers in heat. Coordinates with event and training calendars.</p>
+        </div>
+        <div class="cap">
+          <div class="cap-num">+ / 05</div>
+          <div class="cap-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+          <div class="cap-title">Custom workflows</div>
+          <p class="cap-text">Site-specific behaviours definable through the operations console. Built around the way your team actually works, not a generic facilities-management template.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SCENARIO  ·  72-hour illustrative trace
+       ============================================================ -->
+  <section class="section" id="scenario" style="padding-top: 0;">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-label">[02] scenario · 72 hours</div>
+        <h2>How a single weather event ripples <em>through the system.</em></h2>
+        <p class="section-lead">An illustrative scenario showing how the platform would respond to a tropical low rolling through Sydney: 22mm overnight rainfall, a Thursday mow already scheduled, three ovals to manage.</p>
+      </div>
+
+      <div class="workflow">
+        <div class="workflow-meta">// illustrative scenario · not a historical record</div>
+        <div class="workflow-row">
+          <div class="workflow-event">
+            <span>T-12h · Wed 14:30</span>
+            <strong>BoM extended forecast</strong>
+          </div>
+          <div class="workflow-action">22mm rainfall predicted from 22:00. Mowing scheduled for Thu 06:00 across Ovals 1, 2 and 3.</div>
+          <div class="workflow-tag">DETECT</div>
+        </div>
+        <div class="workflow-row">
+          <div class="workflow-event">
+            <span>T-8h · Wed 18:00</span>
+            <strong>Pre-emptive defer</strong>
+          </div>
+          <div class="workflow-action">Thursday mow deferred to Saturday. Team notified. Irrigation cycles suspended through Sunday 08:00.</div>
+          <div class="workflow-tag">ADJUST</div>
+        </div>
+        <div class="workflow-row">
+          <div class="workflow-event">
+            <span>T+10h · Thu 08:00</span>
+            <strong>Soil moisture spike</strong>
+          </div>
+          <div class="workflow-action">VWC across ovals reaches 78%, saturated. Saturday mow re-evaluated against the 5-day drying forecast.</div>
+          <div class="workflow-tag">SENSE</div>
+        </div>
+        <div class="workflow-row">
+          <div class="workflow-event">
+            <span>T+38h · Fri 12:00</span>
+            <strong>Catch-up planning</strong>
+          </div>
+          <div class="workflow-action">Drying curve confirmed. Saturday mow staged: Oval 1 first (driest), reduced height-of-cut, two-pass pattern for clipping management.</div>
+          <div class="workflow-tag">PLAN</div>
+        </div>
+        <div class="workflow-row">
+          <div class="workflow-event">
+            <span>T+62h · Sat 14:00</span>
+            <strong>Operations execute</strong>
+          </div>
+          <div class="workflow-action">Mow complete. 84% of original cycle reclaimed. No compaction events. Turf stress score returns to baseline within 18 hours.</div>
+          <div class="workflow-tag">CLOSE</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       INTELLIGENCE  ·  Agronomic + Foliar loop
+       ============================================================ -->
+  <section class="section" id="intelligence" style="padding-top: 0;">
+    <div class="container">
+      <div class="two-col">
+        <div>
+          <div class="section-label">[03] agronomic intelligence</div>
+          <h2>The consultant most institutions <em>can't afford to keep on retainer.</em></h2>
+          <p class="section-lead">HortoM8 produces site-specific, weather-aware, sensor-informed agronomic recommendations on a continuous basis. The kind of advice traditionally limited to a specialist turf consultant on a long-term engagement.</p>
+        </div>
+        <ul class="insight-list">
+          <li>
+            <span class="num">01</span>
+            <div class="body">
+              <strong>Seasonal guidance</strong>
+              <p>Pre-emergent herbicide timing, aeration windows, renovation periods, and fertiliser cycles. Calibrated to your sites and your climate zone, not a national average.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div class="body">
+              <strong>Weather-driven alerts</strong>
+              <p>Wetting-agent recommendations during drought cycles. Fungal-risk warnings during warm humid periods. Frost-protection advice triggered by overnight forecasts.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div class="body">
+              <strong>Sensor-driven diagnostics</strong>
+              <p>Identification of hydrophobic soils, salinity issues, uneven irrigation distribution, chronic dry zones, and stress patterns, before they show up visually.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div class="body">
+              <strong>Regional pest and disease alerts</strong>
+              <p>Localised grub, beetle, and armyworm activity. Biosecurity notifications. Turf-disease risk modelling based on current environmental conditions.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div class="body">
+              <strong>Closed-loop procurement via Foliar</strong>
+              <p>When a recommendation calls for a specific wetting agent, mulch, fertiliser, or replacement part, you order it directly from pre-matched suppliers on Foliar, without leaving HortoM8.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       ACCOUNTABILITY  ·  Final CTA
+       ============================================================ -->
+  <section class="section" id="contact" style="padding-top: 0;">
+    <div class="container">
+      <div class="cta">
+        <div class="section-label" style="justify-content: center;">[04] accountability & compliance</div>
+        <h2>Every action <em>logged.</em> Every outcome <em>attributable.</em></h2>
+        <p>HortoM8 functions as the accountability framework between institutional owners and operators: in-house teams, specialist contractors, or hybrid arrangements. Maintenance SLAs, asset uptime, resource use, and contracted outcomes are all tracked, timestamped, and exportable for governance and sustainability reporting.</p>
+        <div class="cta-row" style="justify-content: center;">
+          <a href="mailto:r.clark@hortomatix.com.au" class="btn-primary">Book an institutional walkthrough <span class="mono">→</span></a>
+          <a href="#" class="btn-ghost">// download the spec sheet</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <span>hortom8 · part of the hortomatix platform · syd / au · 2026</span>
+        <span>app.hortom8.com.au · v1.1 shipped</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
