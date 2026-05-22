@@ -380,6 +380,32 @@
      ============================================================ */
   .section { padding: 100px 0; }
   .section-head { margin-bottom: 60px; max-width: 720px; }
+  .section-head-with-image {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 60px;
+    align-items: center;
+    margin-bottom: 60px;
+  }
+  .section-head-with-image .section-head {
+    margin-bottom: 0;
+    max-width: none;
+  }
+  .section-image {
+    margin: 0;
+    border-radius: var(--r-2xl);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-panel);
+    aspect-ratio: 16 / 9;
+    width: 100%;
+  }
+  .section-image img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
   .section-label {
     font-family: var(--font-mono);
     font-size: 11px;
@@ -420,32 +446,42 @@
   }
   .cap {
     background: var(--bg);
-    padding: 36px 32px;
+    padding: 0;
     transition: background 0.2s ease;
+    display: flex;
+    flex-direction: column;
   }
-  .cap:hover { background: var(--bg-2); }
-  .cap-num {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--ink-faint);
-    letter-spacing: 0.1em;
-    margin-bottom: 32px;
+  .cap-head {
+    padding: 14px 20px;
+    color: var(--logo-dark);
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
+  /* Three signal-palette colours rotating across the grid.
+     Used decoratively as card identity treatment — semantically distinct
+     from the small status indicators on the dashboard panel and alerts. */
+  .cap:nth-child(3n+1) .cap-head { background: var(--accent);   }
+  .cap:nth-child(3n+2) .cap-head { background: var(--accent-2); }
+  .cap:nth-child(3n+3) .cap-head { background: var(--warn);     }
+  .cap:hover .cap-head { filter: brightness(1.08); }
   .cap-icon {
-    width: 40px; height: 40px;
-    border: 1px solid var(--line-2);
-    border-radius: var(--r-lg);
-    display: grid; place-items: center;
-    margin-bottom: 24px;
-    color: var(--accent);
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    color: var(--logo-dark);
   }
   .cap-title {
-    font-size: 19px;
+    font-size: 16px;
     font-weight: 500;
-    letter-spacing: -0.015em;
-    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+    color: var(--logo-dark);
+    line-height: 1.25;
   }
   .cap-text {
+    padding: 22px 32px 32px;
     font-size: 14px;
     line-height: 1.6;
     color: var(--ink-dim);
@@ -596,7 +632,7 @@
 
   /* Responsive */
   @media (max-width: 960px) {
-    .hero-grid, .two-col { grid-template-columns: 1fr; gap: 40px; }
+    .hero-grid, .two-col, .section-head-with-image { grid-template-columns: 1fr; gap: 40px; }
     .caps { grid-template-columns: 1fr; }
     .stat-grid { grid-template-columns: 1fr 1fr; }
     .workflow-row { grid-template-columns: 1fr; gap: 8px; }
@@ -760,59 +796,76 @@
        ============================================================ -->
   <section class="section" id="capabilities">
     <div class="container">
-      <div class="section-head">
-        <div class="section-label">[01] capabilities</div>
-        <h2>Workflows that respond to <em>the conditions actually on the ground.</em></h2>
-        <p class="section-lead">HortoM8 doesn't just schedule. It senses, defers, recovers, and rebalances. Five core behaviours run continuously, with the operations team in oversight, not in the loop.</p>
+      <div class="section-head-with-image">
+        <div class="section-head">
+          <div class="section-label">[01] capabilities</div>
+          <h2>Workflows that respond to <em>the conditions actually on the ground.</em></h2>
+          <p class="section-lead">HortoM8 doesn't just schedule. It senses, defers, recovers, and rebalances. Five core behaviours run continuously, with the operations team in oversight, not in the loop.</p>
+        </div>
+        <figure class="section-image">
+          <img src="assets/images/sprinkler-on-turf.jpg" alt="Pop-up sprinkler running at golden hour, water droplets on dewy turf" loading="lazy">
+        </figure>
       </div>
 
       <div class="caps">
         <div class="cap">
-          <div class="cap-num">01 / 05</div>
-          <div class="cap-icon">
+          <div class="cap-head">
+                      <div class="cap-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13a4 4 0 0 1-8 0c0-3 4-9 4-9s4 6 4 9z"/></svg>
           </div>
           <div class="cap-title">Wet-weather recovery</div>
+          </div>
+          
           <p class="cap-text">Defers mowing until turf and soil moisture return to safe levels, then initiates a catch-up protocol with adjusted intensity, height-of-cut, and night-time windows.</p>
         </div>
         <div class="cap">
-          <div class="cap-num">02 / 05</div>
-          <div class="cap-icon">
+          <div class="cap-head">
+                      <div class="cap-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
           </div>
           <div class="cap-title">Heatwave management</div>
+          </div>
+          
           <p class="cap-text">Detects extreme-heat forecasts, schedules supplemental irrigation within safe windows, delays mowing during peak temperatures, and restores normal cycles when conditions stabilise.</p>
         </div>
         <div class="cap">
-          <div class="cap-num">03 / 05</div>
-          <div class="cap-icon">
+          <div class="cap-head">
+                      <div class="cap-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </div>
           <div class="cap-title">Event-aware operations</div>
+          </div>
+          
           <p class="cap-text">Avoids scheduled games, training, school recess, and noise-restricted hours by building these constraints into workflow logic rather than depending on manual calendar oversight.</p>
         </div>
         <div class="cap">
-          <div class="cap-num">04 / 05</div>
-          <div class="cap-icon">
+          <div class="cap-head">
+                      <div class="cap-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
           </div>
           <div class="cap-title">Multi-asset load balancing</div>
+          </div>
+          
           <p class="cap-text">Reassigns mowers and irrigation zones dynamically when an asset is unavailable or a zone needs additional attention, across campuses and multi-field complexes.</p>
         </div>
         <div class="cap">
-          <div class="cap-num">05 / 05</div>
-          <div class="cap-icon">
+          <div class="cap-head">
+                      <div class="cap-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M12 3v9l6 3"/></svg>
           </div>
           <div class="cap-title">Surface conditioning</div>
+          </div>
+          
           <p class="cap-text">Synthetic turf and high-use areas. Schedules grooming, debris removal, and sanitation by usage intensity. Defers in heat. Coordinates with event and training calendars.</p>
         </div>
         <div class="cap">
-          <div class="cap-num">+ / 05</div>
-          <div class="cap-icon">
+          <div class="cap-head">
+                      <div class="cap-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
           </div>
           <div class="cap-title">Custom workflows</div>
+          </div>
+          
           <p class="cap-text">Site-specific behaviours definable through the operations console. Built around the way your team actually works, not a generic facilities-management template.</p>
         </div>
       </div>
